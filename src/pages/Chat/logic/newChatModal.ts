@@ -13,20 +13,17 @@ export function useNewChatModalLogic() {
   const toast = useToast();
   const form = useForm(initialValues);
   const { newChatOpen, newChatToggle, getUserMenu } = useChat();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCreate, setIsLoadingCreate] = useState(false);
+  const [isLoadingJoin, setIsLoadingJoin] = useState(false);
   const navigate = useNavigate();
 
   const addUserToRoom = useCallback(
     async (code: string) => {
       if (!user) return;
 
-      console.log(user);
-
-      setIsLoading(true);
       const { data } = await api.post(`/users/${user.id}/join/${code}`).catch((error) => {
         return { data: error.response.data };
       });
-      setIsLoading(false);
 
       if (data.error) {
         toast({
@@ -64,13 +61,13 @@ export function useNewChatModalLogic() {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoadingCreate(true);
     const { data: response } = await api.post("/rooms", { name }).catch((error) => {
       return { data: error.response.data };
     });
-    setIsLoading(false);
 
     if (response.error) {
+      setIsLoadingCreate(false);
       toast({
         title: response.error,
         status: "error",
@@ -81,10 +78,10 @@ export function useNewChatModalLogic() {
       return;
     }
 
-    if (response.room) {
-      await addUserToRoom(response.room.code);
-    }
+    form.setValue("name", "");
+    await addUserToRoom(response.room.code);
     await getUserMenu();
+    setIsLoadingCreate(false);
 
     navigate(`/${response.room.code}`);
     newChatToggle();
@@ -105,12 +102,15 @@ export function useNewChatModalLogic() {
       return;
     }
 
+    setIsLoadingJoin(true);
+    form.setValue("code", "");
     await addUserToRoom(code);
     await getUserMenu();
+    setIsLoadingJoin(false);
 
     navigate(`/${code}`);
     newChatToggle();
   }
 
-  return { handleCreateRoom, handleJoinRoom, newChatOpen, newChatToggle, form, isLoading };
+  return { handleCreateRoom, handleJoinRoom, newChatOpen, newChatToggle, form, isLoadingCreate, isLoadingJoin };
 }

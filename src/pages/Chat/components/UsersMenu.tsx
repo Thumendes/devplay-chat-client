@@ -8,6 +8,7 @@ import {
   InputRightElement,
   List,
   ListItem,
+  Skeleton,
   Stack,
   Text,
 } from "@chakra-ui/react";
@@ -16,18 +17,25 @@ import { useNavigate } from "react-router-dom";
 import { useChat } from "../logic/context";
 
 const UsersMenu = () => {
-  const { room: currentRoom, rooms } = useChat();
+  const { room: currentRoom, rooms, setRoomsFilter, isLoadingUserMenu } = useChat();
   const navigate = useNavigate();
 
   return (
     <Flex direction="column" gap={4}>
       <Flex>
-        <form>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+
+            // @ts-ignore
+            setRoomsFilter(event.target.elements.filter.value);
+          }}
+        >
           <InputGroup>
-            <Input placeholder="Pesquisar" />
+            <Input name="filter" placeholder="Pesquisar" />
 
             <InputRightElement>
-              <IconButton variant="ghost" size="sm" aria-label="Search users" icon={<FiSearch />} />
+              <IconButton type="submit" variant="ghost" size="sm" aria-label="Search users" icon={<FiSearch />} />
             </InputRightElement>
           </InputGroup>
         </form>
@@ -36,7 +44,9 @@ const UsersMenu = () => {
       <Divider />
 
       <List spacing={2}>
-        {rooms.length ? (
+        {isLoadingUserMenu ? (
+          Array.from({ length: 5 }, (_, index) => <Skeleton rounded="lg" h={50} key={index} />)
+        ) : rooms && rooms.length ? (
           rooms.map((room, i) => {
             const isCurrentRoom = currentRoom ? currentRoom.code === room.code : false;
 

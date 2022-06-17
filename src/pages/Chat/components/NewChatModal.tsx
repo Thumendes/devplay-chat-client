@@ -23,7 +23,8 @@ import { useNewChatModalLogic } from "../logic/newChatModal";
 interface NewChatModalProps {}
 
 const NewChatModal = ({}: NewChatModalProps) => {
-  const { handleCreateRoom, handleJoinRoom, newChatOpen, newChatToggle, form, isLoading } = useNewChatModalLogic();
+  const { handleCreateRoom, handleJoinRoom, newChatOpen, newChatToggle, form, isLoadingCreate, isLoadingJoin } =
+    useNewChatModalLogic();
 
   const textSoftColor = useColorModeValue("gray.500", "gray.400");
 
@@ -45,7 +46,7 @@ const NewChatModal = ({}: NewChatModalProps) => {
                 <FormLabel>Nome da sala</FormLabel>
                 <HStack>
                   <Input onChange={form.handleChange("name")} placeholder="Nome da sala" value={form.data.name} />
-                  <IconButton type="submit" aria-label="" icon={<FiArrowRight />} />
+                  <IconButton isLoading={isLoadingCreate} type="submit" aria-label="" icon={<FiArrowRight />} />
                 </HStack>
               </FormControl>
             </form>
@@ -63,7 +64,7 @@ const NewChatModal = ({}: NewChatModalProps) => {
                     placeholder="Número para entrar na sala"
                     value={form.data.code}
                   />
-                  <IconButton type="submit" aria-label="" icon={<FiArrowRight />} />
+                  <IconButton isLoading={isLoadingJoin} type="submit" aria-label="" icon={<FiArrowRight />} />
                 </HStack>
               </FormControl>
             </form>

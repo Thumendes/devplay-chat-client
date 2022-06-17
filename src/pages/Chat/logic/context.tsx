@@ -1,5 +1,5 @@
 import { useDisclosure, useToast } from "@chakra-ui/react";
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, RefObject } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth, User } from "../../../contexts/auth";
 import { api } from "../../../services/api";
@@ -29,12 +29,15 @@ interface ChatContextType {
   joinRoom(code: string): void;
   leaveRoom(): void;
   sendMessage(message: string): Promise<void> | undefined;
+  getUserMenu(): Promise<Room[]>;
   newChatOpen: boolean;
   room: Room | null;
   messages: WithOwn<Message>[];
   rooms: Room[];
-  isLoading: boolean;
-  getUserMenu(): Promise<Room[]>;
+  isLoadingMessages: boolean;
+  isLoadingUserMenu: boolean;
+  messagesEndRef: RefObject<HTMLDivElement>;
+  setRoomsFilter: React.Dispatch<React.SetStateAction<string>>;
 }
 
 interface ChatContextProps {
@@ -45,7 +48,7 @@ const ChatContext = createContext({} as ChatContextType);
 
 export const useChat = () => useContext(ChatContext);
 
-const ChatLog = (...args: any[]) => console.log("[Chat]", ...args);
+const ChatLog = (...args: any[]) => console.log("📮 [Chat] ->", ...args);
 
 const ChatContextProvider = ({ children }: ChatContextProps) => {
   const newChatDisclosure = useDisclosure();
@@ -54,10 +57,13 @@ const ChatContextProvider = ({ children }: ChatContextProps) => {
   const toast = useToast();
   const navigate = useNavigate();
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [messages, setMessages] = useState<WithOwn<Message>[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomsFilter, setRoomsFilter] = useState("");
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isLoadingUserMenu, setIsLoadingUserMenu] = useState(false);
 
   function parseMessage(message: Message[], user: User): WithOwn<Message>[];
   function parseMessage(message: Message, user: User): WithOwn<Message>;
@@ -70,13 +76,26 @@ const ChatContextProvider = ({ children }: ChatContextProps) => {
     return parsedMessage;
   }
 
+  const scrollToBottom = useCallback(() => {
+    const target = messagesEndRef.current;
+
+    if (!target) return;
+
+    ChatLog("ScrollToBottom", {
+      target: target.scrollHeight,
+      current: target.scrollTop,
+    });
+
+    target.scrollIntoView();
+  }, [messagesEndRef]);
+
   const getRoomMessages = useCallback(
     async (roomCode: string) => {
       if (!user) return;
 
-      setIsLoading(true);
+      setIsLoadingMessages(true);
       const { data } = await api.get(`/rooms/${roomCode}/messages`);
-      setIsLoading(false);
+      setIsLoadingMessages(false);
 
       const chatMessages = parseMessage(data, user);
       setMessages(chatMessages);
@@ -89,14 +108,14 @@ const ChatContextProvider = ({ children }: ChatContextProps) => {
   const getUserMenu = useCallback(async () => {
     if (!user) return;
 
-    setIsLoading(true);
-    const { data } = await api.get(`/users/${user.id}/rooms`);
-    setIsLoading(false);
+    setIsLoadingUserMenu(true);
+    const { data } = await api.get(`/users/${user.id}/rooms`, { params: { filter: roomsFilter || undefined } });
+    setIsLoadingUserMenu(false);
 
     setRooms(data);
 
     return data;
-  }, [user]);
+  }, [user, roomsFilter]);
 
   const joinRoom = useCallback(
     (room: string) => {
@@ -203,10 +222,15 @@ const ChatContextProvider = ({ children }: ChatContextProps) => {
     };
   }, [user, room]);
 
-  // Roda uma única vez
+  // Sempre que as mensagens mudarem, roda o scroll
+  useEffect(() => {
+    if (messages.length) scrollToBottom();
+  }, [messages]);
+
+  // Roda sempre que o filtro mudar
   useEffect(() => {
     getUserMenu();
-  }, []);
+  }, [roomsFilter]);
 
   return (
     <ChatContext.Provider
@@ -218,9 +242,12 @@ const ChatContextProvider = ({ children }: ChatContextProps) => {
         room,
         messages,
         leaveRoom,
-        isLoading,
+        isLoadingMessages,
+        isLoadingUserMenu,
         sendMessage,
         rooms,
+        messagesEndRef,
+        setRoomsFilter,
       }}
     >
       {children}

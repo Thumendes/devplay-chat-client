@@ -135,7 +135,7 @@ export function useProfileLogic() {
 
       if (userForm.data.name === user.name && userForm.data.email === user.email) return;
 
-      const { data } = await api.put(`/users/${user.id}`, userForm.data).catch((error) => {
+      const { data } = await api.put(`/users/${user.id}`, { name: userForm.data.name }).catch((error) => {
         return { data: error.response && error.response.data };
       });
 

@@ -38,9 +38,7 @@ function LoginPage() {
             <PasswordInput onChange={form.handleChange("password")} value={form.data.password} placeholder="Senha" />
           </FormControl>
 
-          <Flex justify="space-between">
-            <Checkbox>Lembrar de mim</Checkbox>
-
+          <Flex justify="end">
             <Link as={RouterLink} to="/forget-password">
               Esqueci minha senha
             </Link>
